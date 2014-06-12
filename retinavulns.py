@@ -233,194 +233,190 @@ def sevCounts(xmlFile, uniq=True, total=False, breakdown=False):
                 if rthID not in uniqAuditDict:
                     uniqAuditDict[rthID] = sevCode
 
-    #Fill sevCodesDict with counts of each unique severity code
-    for audit in uniqAuditDict.items():
-        if audit[1] in sevCodesDict:     #if sevCode is already in list, increment counter
-          sevCodesDict[audit[1]] += 1
-        else:                            #otherwise add sevCode and set value to 1
-          sevCodesDict[audit[1]] = 1
+        #Fill sevCodesDict with counts of each unique severity code
+        for audit in uniqAuditDict.items():
+            if audit[1] in sevCodesDict:     #if sevCode is already in list, increment counter
+              sevCodesDict[audit[1]] += 1
+            else:                            #otherwise add sevCode and set value to 1
+              sevCodesDict[audit[1]] = 1
 
-    if None in sevCodesDict:
-      sevCodesDict.pop(None)            # remove the key where no Severity Code was found "None"
+        if None in sevCodesDict:
+            sevCodesDict.pop(None)            # remove the key where no Severity Code was found "None"
 
-  elif breakdown is True: #count audit IDs per host
+    elif breakdown is True:
+    # count audit IDs per host
     # this will require a dictionary where key=IP address and value is an embedded
     # dictionary where key is severity (i.e Category I) and value is count of Severity
     # Example:
     #               hostDict Key:           VALUE
-    #                     |      |  ipKey     : Value |
+    #                     |      |    ipKey     : Value |
     # hostDict = { "192.168.1.1": {"Category I":"24"} }
 
-    hostDict = {}
-    for host in hosts.iter('host'):     #for each host found in the RTD file
-      ipAddr = host.find('ip').text     #save the IP address
-      hostDict[ipAddr] = {}             #with the IP as the key, set the value to an empty dict
-      for audit in host.iter('audit'): #for each audit under that particular host
-        sevCode = audit.find('sevCode').text  #save the sevCode
-        if sevCode not in hostDict[ipAddr]:
-          hostDict[ipAddr][sevCode] = 1       #if the sevCode key has not been added, add it with a value of 1
-        else:
-          hostDict[ipAddr][sevCode] += 1      # if the sevCode key already exists, increment the value
+        hostDict = {}
+        for host in hosts.iter('host'):     # for each host found in the RTD file
+            ipAddr = host.find('ip').text   # save the IP address
+            hostDict[ipAddr] = {}           # with the IP as the key, set the value to an empty dict
+            for audit in host.iter('audit'): # for each audit under that particular host
+                sevCode = audit.find('sevCode').text  # save the sevCode
+                if sevCode not in hostDict[ipAddr]:
+                  hostDict[ipAddr][sevCode] = 1       # if the sevCode key has not been added, add it with a value of 1
+                else:
+                  hostDict[ipAddr][sevCode] += 1      # if the sevCode key already exists, increment the value
 
-      if None in hostDict[ipAddr]:
-          hostDict[ipAddr].pop(None)
+        if None in hostDict[ipAddr]:  hostDict[ipAddr].pop(None)
+        return hostDict   # return the populated host dictionary
 
+    else: # count audit IDs as many times as they appear
+        for host in hosts.iter('host'):
+            for audit in host.iter('audit'):
+                sevCode = audit.find('sevCode').text
+                if sevCode in sevCodesDict:   # if sevCode is already in list, increment counter
+                    sevCodesDict[sevCode] += 1
+                else:                         # otherwise add sevCode and set value to 1
+                    sevCodesDict[sevCode] = 1
 
-    return hostDict   #return the populated host dictionary
+        if None in sevCodesDict:
+            sevCodesDict.pop(None)            # remove the key where no Severity Code was found "None"
 
-  else: #count audit IDs as many times as they appear
-    for host in hosts.iter('host'):
-      for audit in host.iter('audit'):
-        sevCode = audit.find('sevCode').text
-        if sevCode in sevCodesDict:   #if sevCode is already in list, increment counter
-          sevCodesDict[sevCode] += 1
-        else:                         #otherwise add sevCode and set value to 1
-          sevCodesDict[sevCode] = 1
-
-    if None in sevCodesDict:
-      sevCodesDict.pop(None)            # remove the key where no Severity Code was found "None"
-
-  if(total):
-    count = 0
-    # add up all the findings
-    for value in sevCodesDict.values():
-      count += value
-
-    return count         #int value with total number of findings
-  else:
-    return sevCodesDict  #dict with severity counts
+    if(total):
+        count = 0
+        # add up all the findings
+        for value in sevCodesDict.values():
+            count += value
+        return count         # int value with total number of findings
+    else:
+        return sevCodesDict  # dict with severity counts
 
 #Compares output from two XML files and generates appropriate
 #reports
 def retCompare(args):
 
-  origFile = args.file[0]
-  compFile = args.file[1]
+    origFile = args.file[0]
+    compFile = args.file[1]
 
-  print "\n"
-  print "Baseline File Properties"
-  getMetaData(origFile)
-
-  print "\n"
-  print "Comparison File Properties"
-  getMetaData(compFile)
-
-  if (args.uniq == 'True'):
     print "\n"
-    print " Distinct Findings in baseline: ", sevCounts(origFile, total=True)
-    print " Distinct Findings in comparison: ", sevCounts(compFile, total=True)
-  else:
+    print "Baseline File Properties"
+    getMetaData(origFile)
+
     print "\n"
-    print " Total Findings in baseline: ", sevCounts(origFile, uniq=False, total=True)
-    print " Total Findings in comparison: ", sevCounts(compFile,uniq=False, total=True)
+    print "Comparison File Properties"
+    getMetaData(compFile)
 
-  #Print a severity breakdown
-  #the first argument is considered the baseline
-  printSevs(origFile, compFile, args.uniq)
+    if (args.uniq == 'True'):
+        print "\n"
+        print " Distinct Findings in baseline: ", sevCounts(origFile, total=True)
+        print " Distinct Findings in comparison: ", sevCounts(compFile, total=True)
+    else:
+        print "\n"
+        print " Total Findings in baseline: ", sevCounts(origFile, uniq=False, total=True)
+        print " Total Findings in comparison: ", sevCounts(compFile,uniq=False, total=True)
 
-  #Print resolved items. Findings from the baseline which are NOT
-  # found on the comparison
-  print "\n"
-  print "On baseline, but not comparison (Resolved?):\n"
-  resolvedDict = diffs(origFile, compFile)  # diffs() returns a dictionary where audit ID is the key
-  if resolvedDict:  #if the dict is not empty (True)
-    for key in sorted(resolvedDict, key=int): #the keys are audit ids in string format. Sort them as integers
-      print "\t", key, ":\t", resolvedDict[key]
-  else:
-    print "\tNone."
+    #Print a severity breakdown
+    #the first argument is considered the baseline
+    printSevs(origFile, compFile, args.uniq)
 
-  #Print new items, Findings from the comparison which are NOT
-  # found on the baseline
-  print "\n"
-  print "On comparison, but not baseline (New findings?):\n"
+    #Print resolved items. Findings from the baseline which are NOT
+    # found on the comparison
+    print "\n"
+    print "On baseline, but not comparison (Resolved?):\n"
+    resolvedDict = diffs(origFile, compFile)  # diffs() returns a dictionary where audit ID is the key
+    if resolvedDict:  #if the dict is not empty (True)
+        for key in sorted(resolvedDict, key=int): #the keys are audit ids in string format. Sort them as integers
+            print "\t", key, ":\t", resolvedDict[key]
+    else:
+        print "\tNone."
 
-  newFindingsDict = diffs(compFile, origFile) # diffs() returns a dictionary where audit ID is the key
-  if newFindingsDict: #if the dict is not empty (True)
-    for key in sorted(newFindingsDict, key=int): #the keys are audit ids in string format. Sort them as integers
-      print "\t", key, ":\t", newFindingsDict[key]
-  else:
-    print "\tNone."
+    #Print new items, Findings from the comparison which are NOT
+    # found on the baseline
+    print "\n"
+    print "On comparison, but not baseline (New findings?):\n"
 
-  sys.exit(0)
+    newFindingsDict = diffs(compFile, origFile) # diffs() returns a dictionary where audit ID is the key
+    if newFindingsDict: #if the dict is not empty (True)
+        for key in sorted(newFindingsDict, key=int): #the keys are audit ids in string format. Sort them as integers
+            print "\t", key, ":\t", newFindingsDict[key]
+    else:
+        print "\tNone."
+
+    sys.exit(0)
 
 # Display summary of results for the single file specified
 def retReport(args):
-  ### In Progress
+    ### In Progress
 
-  xmlFile = args.file[0]
+    xmlFile = args.file[0]
 
-  #Print RTD file details
-  getMetaData(xmlFile)
-
-
-
-
-  if (args.uniq == 'True'):  #print distinct results
-    print "\n"
-    print " Distinct Findings: ", sevCounts(xmlFile,total=True)
-
-    print "\n"
-    print " Severity Breakdown:"
-    print " -------------------"
-    for item in sorted(sevCounts(xmlFile).items()):
-      print " " + item[0], "\t", str(item[1]).rjust(4)
-
-    print "\n"
-    listHosts(xmlFile)
-
-    print "\n"
-    printIDs(xmlFile)
-
-  else:                       #print aggregated results
-    print "\n"
-    print " Total Findings: ", sevCounts(xmlFile, uniq=False, total=True)
-
-    print "\n"
-    print " Severity Breakdown:"
-    print " -------------------"
-    for item in sorted(sevCounts(xmlFile, uniq=False).items()):
-      print " " + item[0], "\t", str(item[1]).rjust(4)
-
-    print "\n"
-    listHosts(xmlFile)
-
-
-    print "\n"
-    print " Breakdown by Host"
-    print " -----------------"
-    for key, value in sorted(sevCounts(xmlFile,uniq=False, total=False, breakdown=True).items()):
-      print "\n ", key, "\n"
-      for sev in sorted(value):
-        print " \t", sev, "\t", value[sev]
+    #Print RTD file details
+    getMetaData(xmlFile)
 
 
 
-  sys.exit(0)
+
+    if (args.uniq == 'True'):  #print distinct results
+        print "\n"
+        print " Distinct Findings: ", sevCounts(xmlFile,total=True)
+
+        print "\n"
+        print " Severity Breakdown:"
+        print " -------------------"
+        for item in sorted(sevCounts(xmlFile).items()):
+            print " " + item[0], "\t", str(item[1]).rjust(4)
+
+        print "\n"
+        listHosts(xmlFile)
+
+        print "\n"
+        printIDs(xmlFile)
+
+    else:                       #print aggregated results
+        print "\n"
+        print " Total Findings: ", sevCounts(xmlFile, uniq=False, total=True)
+
+        print "\n"
+        print " Severity Breakdown:"
+        print " -------------------"
+        for item in sorted(sevCounts(xmlFile, uniq=False).items()):
+            print " " + item[0], "\t", str(item[1]).rjust(4)
+
+        print "\n"
+        listHosts(xmlFile)
+
+        print "\n"
+        print " Breakdown by Host"
+        print " -----------------"
+        for key, value in sorted(sevCounts(xmlFile,uniq=False, total=False, breakdown=True).items()):
+            print "\n ", key, "\n"
+            for sev in sorted(value):
+                print " \t", sev, "\t", value[sev]
+
+
+
+    sys.exit(0)
 
 def main():
 
-  os.system("cls")
-  print "\n", " Retina Result Comparison Script -- Version", VERSION
-  print "\n"
-  parser = argparse.ArgumentParser(description="Compare Retina output", add_help=True)
-  subparsers = parser.add_subparsers()
+    os.system("cls")
+    print "\n", " Retina Result Comparison Script -- Version", VERSION
+    print "\n"
+    parser = argparse.ArgumentParser(description="Compare Retina output", add_help=True)
+    subparsers = parser.add_subparsers()
 
-  # Provide command-line option to compare two files
-  parser_compare = subparsers.add_parser('compare')
-  parser_compare.add_argument('file', nargs=2, help='File path to XML report')
-  parser_compare.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
-  parser_compare.set_defaults(func=retCompare)
+    # Provide command-line option to compare two files
+    parser_compare = subparsers.add_parser('compare')
+    parser_compare.add_argument('file', nargs=2, help='File path to XML report')
+    parser_compare.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
+    parser_compare.set_defaults(func=retCompare)
 
-  # Provide command-line option to report findings from one file
-  parser_report = subparsers.add_parser('report')
-  parser_report.add_argument('file', nargs=1, help='File path to XML report')
-  parser_report.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
-  parser_report.set_defaults(func=retReport)
+    # Provide command-line option to report findings from one file
+    parser_report = subparsers.add_parser('report')
+    parser_report.add_argument('file', nargs=1, help='File path to XML report')
+    parser_report.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
+    parser_report.set_defaults(func=retReport)
 
-  # Parse the arguments and call whatever function is selected by
-  # the command-line arguments
-  args = parser.parse_args()
-  args.func(args)
+    # Parse the arguments and call whatever function is selected by
+    # the command-line arguments
+    args = parser.parse_args()
+    args.func(args)
 
 
 # This is the standard boilerplate that calls the main() function.
