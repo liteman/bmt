@@ -3,7 +3,7 @@ Version 1.2
 
 Script for comparison of vulnerability export reports from Retina Security Scanner
 
-Author: liteman, Blue Mantle Technology
+Author: liteman,  Blue Mantle Technology
 
 usage:  retina_compare.py compare xmlFile1 xmlFile2
         retina_compare.py report xmlFile1 [-u False]
