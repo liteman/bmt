@@ -391,19 +391,19 @@ def main():
   os.system("cls")
   print "\n", " Retina Result Comparison Script -- Version", VERSION
   print "\n"
-  parser = argparse.ArgumentParser(description="Compare Retina output")
+  parser = argparse.ArgumentParser(description="Compare Retina output", add_help=True)
   subparsers = parser.add_subparsers()
 
   # Provide command-line option to compare two files
   parser_compare = subparsers.add_parser('compare')
   parser_compare.add_argument('file', nargs=2, help='File path to XML report')
-  parser_compare.add_argument('--uniq', default='True', help='Display distinct audit information\nTrue = distinct\nFalse = aggregated')
+  parser_compare.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
   parser_compare.set_defaults(func=retCompare)
   
   # Provide command-line option to report findings from one file
   parser_report = subparsers.add_parser('report')
   parser_report.add_argument('file', nargs=1, help='File path to XML report')
-  parser_report.add_argument('--uniq', default='True', help='Display distinct audit information (True or False)')
+  parser_report.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
   parser_report.set_defaults(func=retReport)
   
   # Parse the arguments and call whatever function is selected by
