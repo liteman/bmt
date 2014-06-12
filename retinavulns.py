@@ -6,7 +6,7 @@ Script for comparison of vulnerability export reports from Retina Security Scann
 Author: liteman, Blue Mantle Technology
 
 usage:  retina_compare.py compare xmlFile1 xmlFile2
-        retina_compare.py report xmlFile1 [--uniq False]
+        retina_compare.py report xmlFile1 [-u False]
 
 '''
 
@@ -14,7 +14,6 @@ import sys
 import os
 import argparse
 import xml.etree.ElementTree as ET
-import string
 
 VERSION = "1.2"
 
