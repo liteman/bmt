@@ -16,7 +16,7 @@ import argparse
 import xml.etree.ElementTree as ET
 
 VERSION = "1.2"
-
+# Create element tree out of xml file and return the root object
 def getTreeRoot(xmlFile):
     try:
         tree = ET.parse(xmlFile)
@@ -31,15 +31,6 @@ def getTreeRoot(xmlFile):
 ## Job Name, File Name, Scanner Version, IP, DNS Name
 def getMetaData(xmlFile):
 
-    # Create element tree out of xml file
-    ''' try:
-            tree = ET.parse(xmlFile)
-        except IOError, message:
-            print message
-            sys.exit(1)
-
-        root = tree.getroot()
-    '''
     root = getTreeRoot(xmlFile)
     metrics = root.find('metrics')
 
@@ -54,14 +45,7 @@ def getMetaData(xmlFile):
 ## Define a function to list all hosts included in a scan
 def listHosts(xmlFile):
 
-    # Create element tree out of xml file
-    try:
-        tree = ET.parse(xmlFile)
-    except IOError, message:
-        print message
-        sys.exit(1)
-
-    root = tree.getroot()
+    root = getTreeRoot(xmlFile)
     hosts = root.find('hosts')
 
     # Format the output with appropriate spacing and aligntment
@@ -94,14 +78,14 @@ def listHosts(xmlFile):
 def printSevs(file1, file2, uniq):
 
     if (uniq == 'True'):
-        origSevDict = sevCounts(file1)
-        compSevDict = sevCounts(file2)
+        origSevDict = sevCounts(file1, total=False)
+        compSevDict = sevCounts(file2, total=False)
     else:
-        origSevDict = sevCounts(file1, uniq=False)
-        compSevDict = sevCounts(file2, uniq=False)
+        origSevDict = sevCounts(file1, uniq=False, total=False)
+        compSevDict = sevCounts(file2, uniq=False, total=False)
 
     print "\nSeverity Breakdown:\n"
-    print "\t\t", "Baseline", "\t", "Comparison"
+    print "\t\t\t", "Baseline", "\t", "Comparison"
     for key in sorted(origSevDict.keys()):
         print " " + key, "\t", str(origSevDict.get(key)).rjust(4), "\t\t", str(compSevDict.get(key)).rjust(4)
 
@@ -114,17 +98,9 @@ def diffs(file1, file2):
     dictL1 = {}
     dictL2 = {}
 
-    # Create element tree out of xml file
-    try:
-        treeOne = ET.parse(file1)
-        treeTwo = ET.parse(file2)
-    except IOError, message:
-        print message
-        sys.exit(1)
-
     #Find the roots of each xml structure
-    rootOne = treeOne.getroot()
-    rootTwo = treeTwo.getroot()
+    rootOne = getTreeRoot(file1)
+    rootTwo = getTreeRoot(file2)
 
     #Locate the hosts from each XML structure
     hostsOne = rootOne.find('hosts')
@@ -156,16 +132,9 @@ def diffs(file1, file2):
     return result
 
 ## Define a function to collect print unique audit id-name combos
-def printIDs(file1):
+def printIDs(xmlFile):
 
-    #Create element tree out of xml file
-    try:
-        tree = ET.parse(file1)
-    except IOError, message:
-        print message
-        sys.exit(1)
-
-    root = tree.getroot()
+    root = getTreeRoot(xmlFile)
     hosts = root.find('hosts')
     tempDict = {}
 
@@ -200,7 +169,7 @@ def printIDs(file1):
 ## counted for all hosts
 ## if total is False, return a dict containg the Severity Breakdown
 ## if total is True, sum the total number of findings
-def sevCounts(xmlFile, uniq=True, total=False, breakdown=False):
+def sevCounts(xmlFile, uniq=True, total=True, breakdown=False):
 
     #Dict where key is unique Severity Code and values are
     #the counts of each respective Severity Code
@@ -213,14 +182,7 @@ def sevCounts(xmlFile, uniq=True, total=False, breakdown=False):
     #IDs. Duplicate audit IDs will skew Severity Counts
     uniqAuditDict = { }
 
-     #####Using Element Tree
-    try:
-        tree = ET.parse(xmlFile)
-    except IOError:
-        print message
-        sys.exit(1)
-
-    root = tree.getroot()
+    root = getTreeRoot(xmlFile)
     hosts = root.find('hosts')
 
     if uniq is True: #only count audit IDs once, regardless of how many hosts are affected
@@ -304,12 +266,12 @@ def retCompare(args):
 
     if (args.uniq == 'True'):
         print "\n"
-        print " Distinct Findings in baseline: ", sevCounts(origFile, total=True)
-        print " Distinct Findings in comparison: ", sevCounts(compFile, total=True)
+        print " Unique Findings in baseline: ", sevCounts(origFile)
+        print " Unique Findings in comparison: ", sevCounts(compFile)
     else:
         print "\n"
-        print " Total Findings in baseline: ", sevCounts(origFile, uniq=False, total=True)
-        print " Total Findings in comparison: ", sevCounts(compFile,uniq=False, total=True)
+        print " Total Findings in baseline: ", sevCounts(origFile, uniq=False)
+        print " Total Findings in comparison: ", sevCounts(compFile,uniq=False)
 
     #Print a severity breakdown
     #the first argument is considered the baseline
@@ -354,12 +316,12 @@ def retReport(args):
 
     if (args.uniq == 'True'):  #print distinct results
         print "\n"
-        print " Distinct Findings: ", sevCounts(xmlFile,total=True)
+        print " Distinct Findings: ", sevCounts(xmlFile)
 
         print "\n"
         print " Severity Breakdown:"
         print " -------------------"
-        for item in sorted(sevCounts(xmlFile).items()):
+        for item in sorted(sevCounts(xmlFile).items(), total=False):
             print " " + item[0], "\t", str(item[1]).rjust(4)
 
         print "\n"
@@ -370,7 +332,7 @@ def retReport(args):
 
     else:                       #print aggregated results
         print "\n"
-        print " Total Findings: ", sevCounts(xmlFile, uniq=False, total=True)
+        print " Total Findings: ", sevCounts(xmlFile, uniq=False)
 
         print "\n"
         print " Severity Breakdown:"
