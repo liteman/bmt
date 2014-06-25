@@ -29,7 +29,7 @@ def getTreeRoot(xmlFile):
 
 ## Function to build a string containing job data
 ## Job Name, File Name, Scanner Version, IP, DNS Name
-def getMetaData(xmlFile):
+def printmetadata(xmlFile):
 
     root = getTreeRoot(xmlFile)
     metrics = root.find('metrics')
@@ -43,12 +43,12 @@ def getMetaData(xmlFile):
     print " Audits Rev: \t", metrics.find('auditsRevision').text
 
 ## Define a function to list all hosts included in a scan
-def listHosts(xmlFile):
+def printhostlist(xmlFile):
 
     root = getTreeRoot(xmlFile)
     hosts = root.find('hosts')
 
-    # Format the output with appropriate spacing and aligntment
+    # Format the output with appropriate spacing and alignment
     # Example output should look like this:
     # NetBIOS Name        IP Address          DNS Name
     # ------------        ----------          --------
@@ -258,11 +258,11 @@ def retCompare(args):
 
     print "\n"
     print "Baseline File Properties"
-    getMetaData(origFile)
+    printmetadata(origFile)
 
     print "\n"
     print "Comparison File Properties"
-    getMetaData(compFile)
+    printmetadata(compFile)
 
     if (args.uniq == 'True'):
         print "\n"
@@ -309,10 +309,7 @@ def retReport(args):
     xmlFile = args.file[0]
 
     #Print RTD file details
-    getMetaData(xmlFile)
-
-
-
+    printmetadata(xmlFile)
 
     if (args.uniq == 'True'):  #print distinct results
         print "\n"
@@ -321,11 +318,11 @@ def retReport(args):
         print "\n"
         print " Severity Breakdown:"
         print " -------------------"
-        for item in sorted(sevCounts(xmlFile).items(), total=False):
+        for item in sorted(sevCounts(xmlFile, total=False).items()):
             print " " + item[0], "\t", str(item[1]).rjust(4)
 
         print "\n"
-        listHosts(xmlFile)
+        printhostlist(xmlFile)
 
         print "\n"
         printIDs(xmlFile)
@@ -337,11 +334,11 @@ def retReport(args):
         print "\n"
         print " Severity Breakdown:"
         print " -------------------"
-        for item in sorted(sevCounts(xmlFile, uniq=False).items()):
+        for item in sorted(sevCounts(xmlFile, uniq=False, total=False).items()):
             print " " + item[0], "\t", str(item[1]).rjust(4)
 
         print "\n"
-        listHosts(xmlFile)
+        printhostlist(xmlFile)
 
         print "\n"
         print " Breakdown by Host"
@@ -372,7 +369,7 @@ def main():
     # Provide command-line option to report findings from one file
     parser_report = subparsers.add_parser('report')
     parser_report.add_argument('file', nargs=1, help='File path to XML report')
-    parser_report.add_argument('-u', '--uniq', metavar='True/False', default='True', help='Count vulns once per report[True] or once per host [False]')
+    parser_report.add_argument('-u', '--uniq', action='store_true', default='True', help='Count vulns once per report[True] or once per host [False]')
     parser_report.set_defaults(func=retReport)
 
     # Parse the arguments and call whatever function is selected by
